@@ -1,55 +1,22 @@
 -- ============================================================
--- setup.sql — Script di installazione database
--- Esegui questo script una sola volta nel SQL Editor di Supabase
--- (https://supabase.com → progetto → SQL Editor → New query)
+-- setup.sql — Esegui UNA SOLA VOLTA nel SQL Editor di Supabase
+-- Project → SQL Editor → New query → incolla → Run
 -- ============================================================
 
--- ── 1. CONFIGURAZIONE APP ────────────────────────────────────
--- Contiene tutte le impostazioni personalizzabili dall'app
-create table if not exists config_app (
-  chiave    text primary key,
-  valore    text,
-  tipo      text default 'text',   -- text | json | color | bool
-  etichetta text,                  -- label mostrata nelle Impostazioni
-  sezione   text default 'unita'  -- unita | colori | volontari | interventi | mezzi | attestati
-);
-
--- Valori di default (personalizzabili poi dall'app)
-insert into config_app (chiave, valore, tipo, etichetta, sezione) values
-  ('unita.nomeBreve',       'La Mia Unità',                    'text',  'Nome breve',          'unita'),
-  ('unita.nomeLungo',       'La Mia Unità di Protezione Civile','text', 'Nome completo',        'unita'),
-  ('unita.nomeSezione',     '',                                'text',  'Sezione',             'unita'),
-  ('unita.sottotitolo',     '',                                'text',  'Sottotitolo',         'unita'),
-  ('unita.nomeSigla',       'LA MIA UNITÀ',                   'text',  'Sigla (maiuscolo)',   'unita'),
-  ('unita.descrizione',     'Protezione Civile',               'text',  'Descrizione',         'unita'),
-  ('unita.tipoVolontario',  'Volontario',                      'text',  'Tipo volontario',     'unita'),
-  ('unita.logoUrl',         '',                                'text',  'URL logo',            'unita'),
-  ('colori.primario',       '#1a7a4a',                         'color', 'Colore primario',     'colori'),
-  ('colori.primarioLight',  '#25a863',                         'color', 'Colore primario chiaro','colori'),
-  ('colori.primarioDark',   '#30d158',                         'color', 'Colore dark mode',    'colori'),
-  ('attestati.ruoloFirmatario', 'Il Presidente',               'text',  'Ruolo firmatario',    'attestati'),
-  ('volontari.squadre',     '[]',                              'json',  'Squadre',             'volontari'),
-  ('volontari.tipi',        '["VOLONTARIO"]',                  'json',  'Tipi volontario',     'volontari'),
-  ('volontari.mansioni',    '[]',                              'json',  'Mansioni',            'volontari'),
-  ('interventi.tipiAttivita','["EMERGENZA","ESERCITAZIONE","CORSI","PREVENZIONE INFORTUNI","RAPPRESENTANZA","ASSEMBLEE E RIUNIONI","CONTROLLO TERRITORIO","SEGRETERIA","MAGAZZINO"]',
-                                                               'json',  'Tipi attività',       'interventi'),
-  ('mezzi.stati',           '["OPERATIVO","IN MANUTENZIONE","FERMO"]', 'json', 'Stati mezzi', 'mezzi')
-on conflict (chiave) do nothing;
-
--- ── 2. UTENTI ────────────────────────────────────────────────
+-- Utenti app (NON usa Supabase Auth)
 create table if not exists utenti (
   id            bigint generated always as identity primary key,
   nome          text not null,
   username      text not null unique,
   password      text not null,
   ruolo         text,
-  tipo_accesso  text default 'standard',  -- master | standard
+  tipo_accesso  text default 'standard',
   permessi      jsonb default '{}',
   attivo        boolean default true,
   created_at    timestamptz default now()
 );
 
--- ── 3. VOLONTARI ─────────────────────────────────────────────
+-- Volontari
 create table if not exists volontari (
   id                bigint generated always as identity primary key,
   cognome           text not null,
@@ -84,7 +51,7 @@ create table if not exists volontari (
   created_at        timestamptz default now()
 );
 
--- ── 4. INTERVENTI ────────────────────────────────────────────
+-- Interventi
 create table if not exists interventi (
   id              bigint generated always as identity primary key,
   evento          text not null,
@@ -101,7 +68,7 @@ create table if not exists interventi (
   created_at      timestamptz default now()
 );
 
--- ── 5. MEZZI ─────────────────────────────────────────────────
+-- Mezzi
 create table if not exists mezzi (
   id          bigint generated always as identity primary key,
   automezzo   text not null,
@@ -114,7 +81,7 @@ create table if not exists mezzi (
   created_at  timestamptz default now()
 );
 
--- ── 6. DOCUMENTI ─────────────────────────────────────────────
+-- Documenti (volontari e mezzi)
 create table if not exists documenti (
   id            bigint generated always as identity primary key,
   volontario_id bigint references volontari(id) on delete cascade,
@@ -125,7 +92,7 @@ create table if not exists documenti (
   data_carico   timestamptz default now()
 );
 
--- ── 7. SCHEMA CAMPI CUSTOM ───────────────────────────────────
+-- Campi custom volontari (schema)
 create table if not exists schema_volontari (
   id        bigint generated always as identity primary key,
   campo_id  text not null unique,
@@ -136,7 +103,7 @@ create table if not exists schema_volontari (
   visibile  boolean default true
 );
 
--- ── 8. VALORI CAMPI CUSTOM ───────────────────────────────────
+-- Valori campi custom
 create table if not exists valori_custom (
   id            bigint generated always as identity primary key,
   volontario_id bigint references volontari(id) on delete cascade,
@@ -145,7 +112,7 @@ create table if not exists valori_custom (
   unique(volontario_id, campo_id)
 );
 
--- ── 9. VISTE VOLONTARI ───────────────────────────────────────
+-- Viste volontari
 create table if not exists viste_volontari (
   id      bigint generated always as identity primary key,
   nome    text not null,
@@ -153,7 +120,7 @@ create table if not exists viste_volontari (
   ordine  int default 0
 );
 
--- ── 10. RICHIESTE ADESIONE ───────────────────────────────────
+-- Richieste adesione
 create table if not exists richieste_adesione (
   id          bigint generated always as identity primary key,
   nome        text,
@@ -165,7 +132,7 @@ create table if not exists richieste_adesione (
   created_at  timestamptz default now()
 );
 
--- ── 11. LOG ATTIVITÀ ─────────────────────────────────────────
+-- Log attività
 create table if not exists log_attivita (
   id           bigint generated always as identity primary key,
   utente_nome  text,
@@ -173,38 +140,24 @@ create table if not exists log_attivita (
   created_at   timestamptz default now()
 );
 
--- ── 12. STORAGE BUCKETS ──────────────────────────────────────
--- Esegui questi comandi separatamente se non li crea in automatico:
--- insert into storage.buckets (id, name, public) values ('documenti', 'documenti', true);
--- insert into storage.buckets (id, name, public) values ('attestati', 'attestati', true);
--- insert into storage.buckets (id, name, public) values ('loghi', 'loghi', true);
+-- Disabilita RLS (l'accesso è controllato dall'app via login)
+alter table utenti             disable row level security;
+alter table volontari          disable row level security;
+alter table interventi         disable row level security;
+alter table mezzi              disable row level security;
+alter table documenti          disable row level security;
+alter table schema_volontari   disable row level security;
+alter table valori_custom      disable row level security;
+alter table viste_volontari    disable row level security;
+alter table richieste_adesione disable row level security;
+alter table log_attivita       disable row level security;
 
--- ── 13. RLS (Row Level Security) ─────────────────────────────
--- Per semplicità disabilitato: l'accesso è controllato dall'app via login.
--- In un deployment avanzato abilita RLS per ogni tabella.
-alter table config_app          disable row level security;
-alter table utenti              disable row level security;
-alter table volontari           disable row level security;
-alter table interventi          disable row level security;
-alter table mezzi               disable row level security;
-alter table documenti           disable row level security;
-alter table schema_volontari    disable row level security;
-alter table valori_custom       disable row level security;
-alter table viste_volontari     disable row level security;
-alter table richieste_adesione  disable row level security;
-alter table log_attivita        disable row level security;
-
--- ── 14. UTENTE MASTER INIZIALE ───────────────────────────────
--- Cambia username e password dopo il primo accesso!
-insert into utenti (nome, username, password, ruolo, tipo_accesso)
-values ('Amministratore', 'admin', 'admin', 'Amministratore', 'master')
-on conflict (username) do nothing;
+-- Storage buckets (esegui separatamente se dà errore)
+insert into storage.buckets (id, name, public) values ('documenti', 'documenti', true) on conflict do nothing;
+insert into storage.buckets (id, name, public) values ('attestati', 'attestati', true) on conflict do nothing;
+insert into storage.buckets (id, name, public) values ('loghi',     'loghi',     true) on conflict do nothing;
 
 -- ============================================================
--- FATTO! Ora:
--- 1. Copia URL e anon key da Project Settings → API
--- 2. Incollali in config.js
--- 3. Carica i 3 file (config.js, area-riservata.html, area-riservata.js)
--- 4. Apri l'app e accedi con admin/admin
--- 5. Vai in Impostazioni e configura la tua unità
+-- FATTO. Ora apri l'app: al primo accesso ti chiederà
+-- di creare il tuo account amministratore.
 -- ============================================================

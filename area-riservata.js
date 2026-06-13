@@ -125,60 +125,36 @@ function avviaSplashSafe() {
 }
 document.addEventListener('DOMContentLoaded', avviaSplashSafe);
 
-// ============================================================
-// DEFAULT CONFIG — valori di fallback quando il database
-// non è ancora configurato. Non modificare questo file.
-// Modifica config.js per la connessione Supabase.
-// Tutto il resto si configura dall'app (Impostazioni).
-// ============================================================
-
-// Merge: config.js fornisce supabase.url e supabase.key,
-// qui completiamo con i default per tutto il resto.
+// ── Merge config.js + default ────────────────────────────
 (function() {
-  if (typeof APP_CONFIG === 'undefined') {
-    console.error('config.js non caricato! Crea config.js con url e key Supabase.');
-    window.APP_CONFIG = { supabase: { url: '', key: '' } };
+  if (typeof APP_CONFIG === 'undefined' || !APP_CONFIG.supabase) {
+    console.error('config.js mancante o incompleto.');
+    window.APP_CONFIG = { supabase: { url: '', key: '' }, unita: {} };
   }
-  var D = {
-    unita: {
-      nomeBreve:      'La Mia Unità',
-      nomeLungo:      'La Mia Unità di Protezione Civile',
-      nomeSezione:    '',
-      sottotitolo:    '',
-      nomeSigla:      'LA MIA UNITÀ',
-      descrizione:    'Protezione Civile',
-      tipoVolontario: 'Volontario',
-      logoPath:       'images/logo.png',
-    },
-    colori: {
-      primario:      '#1a7a4a',
-      primarioLight: '#25a863',
-      primarioDark:  '#30d158',
-    },
-    attestati: {
-      ruoloFirmatario: 'Il Presidente',
-    },
-    volontari: {
-      squadre:  [],
-      tipi:     ['VOLONTARIO'],
-      mansioni: [],
-    },
-    interventi: {
-      tipiAttivita: [
-        'EMERGENZA', 'ESERCITAZIONE', 'CORSI', 'PREVENZIONE INFORTUNI',
-        'RAPPRESENTANZA', 'ASSEMBLEE E RIUNIONI', 'CONTROLLO TERRITORIO',
-        'SEGRETERIA', 'MAGAZZINO'
-      ],
-    },
-    mezzi: {
-      stati: ['OPERATIVO', 'IN MANUTENZIONE', 'FERMO'],
-    },
+  // Default unita
+  var du = { nome: 'La Mia Unità', sigla: 'LA MIA UNITÀ', logo: 'images/logo.png', colore: '#1a7a4a' };
+  APP_CONFIG.unita = Object.assign({}, du, APP_CONFIG.unita || {});
+  // Valori derivati per retrocompatibilità col codice esistente
+  var u = APP_CONFIG.unita;
+  u.nomeBreve      = u.nome;
+  u.nomeLungo      = u.nome;
+  u.nomeSezione    = u.nome;
+  u.sottotitolo    = '';
+  u.nomeSigla      = u.sigla;
+  u.descrizione    = 'Protezione Civile';
+  u.tipoVolontario = 'Volontario';
+  u.logoPath       = u.logo;
+  // Default colori
+  APP_CONFIG.colori = {
+    primario:      u.colore || '#1a7a4a',
+    primarioLight: u.colore || '#25a863',
+    primarioDark:  '#30d158',
   };
-  // Merge profondo: i valori di config.js hanno priorità
-  Object.keys(D).forEach(function(k) {
-    if (!APP_CONFIG[k]) APP_CONFIG[k] = D[k];
-    else APP_CONFIG[k] = Object.assign({}, D[k], APP_CONFIG[k]);
-  });
+  // Default liste (caricate dal DB se disponibili, altrimenti vuote)
+  APP_CONFIG.volontari  = { squadre: [], tipi: ['VOLONTARIO'], mansioni: [] };
+  APP_CONFIG.interventi = { tipiAttivita: ['EMERGENZA','ESERCITAZIONE','CORSI','PREVENZIONE INFORTUNI','RAPPRESENTANZA','ASSEMBLEE E RIUNIONI','CONTROLLO TERRITORIO','SEGRETERIA','MAGAZZINO'] };
+  APP_CONFIG.mezzi      = { stati: ['OPERATIVO','IN MANUTENZIONE','FERMO'] };
+  APP_CONFIG.attestati  = { ruoloFirmatario: 'Il Presidente' };
 })();
 
 // ── Scorciatoie ───────────────────────────────────────────
@@ -187,50 +163,7 @@ const SUPA_KEY = APP_CONFIG.supabase.key;
 const H  = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
 const HJ = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
 
-// ── Carica config_app dal database e aggiorna APP_CONFIG ──
-async function caricaConfigApp() {
-  if (!SUPA_URL || SUPA_URL.includes('INSERISCI')) return; // non configurato
-  try {
-    var res  = await fetch(SUPA_URL + '/rest/v1/config_app?select=chiave,valore,tipo', { headers: H });
-    var rows = await res.json();
-    if (!Array.isArray(rows) || !rows.length) return;
-    rows.forEach(function(r) {
-      var val = r.tipo === 'json' ? JSON.parse(r.valore || '[]')
-              : r.tipo === 'bool' ? r.valore === 'true'
-              : r.valore;
-      // chiave nel formato "sezione.campo" → APP_CONFIG.sezione.campo
-      var parts = r.chiave.split('.');
-      if (parts.length === 2) {
-        if (!APP_CONFIG[parts[0]]) APP_CONFIG[parts[0]] = {};
-        APP_CONFIG[parts[0]][parts[1]] = val;
-      }
-    });
-    // Aggiorna scorciatoie (non cambiano ma per sicurezza)
-    // Riapplica al DOM
-    applicaConfig();
-  } catch(e) {
-    console.warn('config_app non disponibile, uso default:', e.message);
-  }
-}
 
-
-
-let currentUser = null;
-
-// PWA
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-
-// Orologio
-function updateClock() {
-  const n = new Date();
-  const t = String(n.getHours()).padStart(2,'0') + ':' + String(n.getMinutes()).padStart(2,'0');
-  const el = document.getElementById('topbarClock');
-  if (el) el.textContent = t;
-}
-updateClock();
-setInterval(updateClock, 15000);
-
-// -- LOGIN --
 async function doLogin() {
   const u   = document.getElementById('loginUser').value.trim();
   const p   = document.getElementById('loginPass').value.trim();
@@ -240,6 +173,16 @@ async function doLogin() {
   err.style.display = 'none';
   btn.disabled = true; btn.textContent = 'accesso...';
   try {
+    // Controlla se il DB è configurato e se esiste almeno un master
+    const checkRes  = await fetch(SUPA_URL + '/rest/v1/utenti?tipo_accesso=eq.master&select=id&limit=1', { headers: H });
+    const checkData = await checkRes.json();
+    if (!Array.isArray(checkData)) throw new Error('DB non raggiungibile. Controlla URL e key in config.js');
+    if (checkData.length === 0) {
+      // Primo avvio — nessun master esistente
+      btn.disabled = false; btn.textContent = 'Accedi';
+      mostraSetupPrimoAvvio();
+      return;
+    }
     const res  = await fetch(SUPA_URL + '/rest/v1/utenti?username=eq.' + encodeURIComponent(u) + '&password=eq.' + encodeURIComponent(p) + '&attivo=eq.true&select=id,nome,ruolo,tipo_accesso,permessi', { headers: H });
     const data = await res.json();
     if (data && data.length > 0) {
@@ -247,15 +190,66 @@ async function doLogin() {
       sessionStorage.setItem('ar_user', u);
       sessionStorage.setItem('ar_pass', p);
       await logAttivita('ha effettuato il login');
-      await caricaConfigApp();
       avviaDashboard();
     } else {
       err.textContent = 'Credenziali non corrette.'; err.style.display = 'block';
     }
   } catch(e) {
-    err.textContent = 'Errore di connessione.'; err.style.display = 'block';
+    err.textContent = 'Errore: ' + e.message; err.style.display = 'block';
   }
   btn.disabled = false; btn.textContent = 'Accedi';
+}
+
+// -- PRIMO AVVIO --
+function mostraSetupPrimoAvvio() {
+  var loginCard = document.querySelector('.login-card');
+  if (!loginCard) return;
+  loginCard.innerHTML = `
+    <div class="login-logo">
+      <img id="loginLogo" src="${APP_CONFIG.unita.logo}" alt="" onerror="this.style.display='none'">
+      <h1 id="loginTitolo">${APP_CONFIG.unita.nome}</h1>
+      <p>Primo avvio — crea il tuo account</p>
+    </div>
+    <div class="login-error" id="setupErr"></div>
+    <label class="login-label">Il tuo nome</label>
+    <input class="login-input" type="text" id="setupNome" placeholder="Mario Rossi" autocomplete="name">
+    <label class="login-label">Username</label>
+    <input class="login-input" type="text" id="setupUser" placeholder="mrossi" autocomplete="username">
+    <label class="login-label">Password</label>
+    <input class="login-input" type="password" id="setupPass" placeholder="min. 8 caratteri" autocomplete="new-password">
+    <label class="login-label">Conferma password</label>
+    <input class="login-input" type="password" id="setupPass2" placeholder="ripeti password" autocomplete="new-password">
+    <button class="btn-login" onclick="completaSetup()">Crea account</button>
+  `;
+}
+
+async function completaSetup() {
+  var nome  = document.getElementById('setupNome').value.trim();
+  var user  = document.getElementById('setupUser').value.trim();
+  var pass  = document.getElementById('setupPass').value;
+  var pass2 = document.getElementById('setupPass2').value;
+  var err   = document.getElementById('setupErr');
+  err.style.display = 'none';
+  if (!nome || !user || !pass) { err.textContent = 'Compila tutti i campi.'; err.style.display = 'block'; return; }
+  if (pass.length < 8) { err.textContent = 'Password troppo corta (min. 8 caratteri).'; err.style.display = 'block'; return; }
+  if (pass !== pass2) { err.textContent = 'Le password non coincidono.'; err.style.display = 'block'; return; }
+  try {
+    var res = await fetch(SUPA_URL + '/rest/v1/utenti', {
+      method: 'POST',
+      headers: Object.assign({}, HJ, { 'Prefer': 'return=representation' }),
+      body: JSON.stringify({ nome, username: user, password: pass, ruolo: 'Amministratore', tipo_accesso: 'master', attivo: true, permessi: {} })
+    });
+    if (!res.ok) {
+      var txt = await res.text();
+      throw new Error(txt.includes('unique') ? 'Username già in uso.' : 'Errore creazione account.');
+    }
+    var data = await res.json();
+    currentUser = data[0];
+    await logAttivita('primo avvio — account master creato');
+    avviaDashboard();
+  } catch(e) {
+    err.textContent = e.message; err.style.display = 'block';
+  }
 }
 
 let isMasterUser = false;

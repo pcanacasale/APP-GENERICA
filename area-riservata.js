@@ -16,12 +16,34 @@ function applicaConfig() {
   if ((el = document.getElementById('pageTitle')))         el.textContent = u.nomeBreve + ' — Area Riservata';
   document.title = u.nomeBreve + ' — Area Riservata';
 
-  // Colori CSS (sovrascrive le variabili del :root)
+  // Meta apple-web-app-title
+  if ((el = document.getElementById('metaAppTitle'))) el.setAttribute('content', u.nomeBreve);
+
+  // Loghi
+  ['loginLogo','sidebarLogo'].forEach(function(id) {
+    if ((el = document.getElementById(id))) el.src = u.logoPath;
+  });
+
+  // Colori CSS — sovrascrive le variabili su :root
+  // Hanno precedenza sulle regole statiche del foglio di stile
+  // (incluso @media prefers-color-scheme: dark, perché lo style inline
+  //  su :root vince sulla cascade quando non c'è !important)
   var root = document.documentElement;
   root.style.setProperty('--green',       c.primario);
   root.style.setProperty('--green-light', c.primarioLight);
-  // dark mode override (non possiamo agire su @media via JS, ma la variabile custom
-  // impostata su :root ha precedenza anche in dark mode se non usa !important)
+  // In dark mode il browser usa ancora le variabili di :root —
+  // impostiamo primarioDark solo se l'utente è in dark mode
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    root.style.setProperty('--green',       c.primarioDark);
+    root.style.setProperty('--green-light', c.primarioDark);
+  }
+  // Ascolta i cambi di modalità a runtime
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+      root.style.setProperty('--green',       e.matches ? c.primarioDark : c.primario);
+      root.style.setProperty('--green-light', e.matches ? c.primarioDark : c.primarioLight);
+    });
+  }
 
   // Popola filtri volontari
   var mkOpts = function(arr, all) {
@@ -2035,11 +2057,11 @@ function apriFormIntervento(id, macroIdPreset) {
     <div class="vol-form-section">
       <div class="vol-form-section-title">Intervento</div>
       <div class="vol-form-grid">
-        <div class="vol-form-field full"><label class="vol-form-lbl">Evento *</label><input class="vol-form-inp" id="ifEvento" placeholder="es. Alluvione Mirabello"></div>
+        <div class="vol-form-field full"><label class="vol-form-lbl">Evento *</label><input class="vol-form-inp" id="ifEvento" placeholder="es. Alluvione, terremoto..."></div>
         <div class="vol-form-field"><label class="vol-form-lbl">Data inizio *</label><input class="vol-form-inp" type="date" id="ifData"></div>
         <div class="vol-form-field"><label class="vol-form-lbl">Data fine</label><input class="vol-form-inp" type="date" id="ifDataFine"></div>
         <div class="vol-form-field"><label class="vol-form-lbl">Tipo attività</label><select class="vol-form-inp" id="ifTipo"><option value="">—</option>${tipoOpts}</select></div>
-        <div class="vol-form-field full"><label class="vol-form-lbl">Luogo</label><input class="vol-form-inp" id="ifLuogo" placeholder="es. Via Roma, Casale M.to"></div>
+        <div class="vol-form-field full"><label class="vol-form-lbl">Luogo</label><input class="vol-form-inp" id="ifLuogo" placeholder="es. Via Roma, Comune..."></div>
         <div class="vol-form-field full"><label class="vol-form-lbl">Registrato da</label><input class="vol-form-inp" id="ifUtente" placeholder="Chi registra"></div>
       </div>
     </div>

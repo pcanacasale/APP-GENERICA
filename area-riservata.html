@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
-<meta name="apple-mobile-web-app-title" content="PC ANA Casale">
+<meta name="apple-mobile-web-app-title" id="metaAppTitle" content="PC ANA Casale">
 <meta name="theme-color" content="#0d1117">
 <link rel="manifest" href="manifest.json">
 <title id="pageTitle">PC ANA Casale — Area Riservata</title>
@@ -419,7 +419,7 @@ div:hover > .vista-edit-btn { display:flex; }
 <div id="loginScreen" style="display:flex">
   <div class="login-card">
     <div class="login-logo">
-      <img src="images/logo-ana.gif" alt="PC ANA" onerror="this.style.display='none'">
+      <img id="loginLogo" src="images/logo-ana.gif" alt="PC ANA" onerror="this.style.display='none'">
       <h1 id="loginTitolo">PC ANA Casale Monferrato</h1>
     </div>
     <label class="login-label">Username</label>
@@ -452,7 +452,7 @@ div:hover > .vista-edit-btn { display:flex; }
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-header-logo">
-        <img src="images/logo-ana.gif" alt="PC ANA" onerror="this.style.display='none'">
+        <img id="sidebarLogo" src="images/logo-ana.gif" alt="PC ANA" onerror="this.style.display='none'">
         <div>
           <div class="sidebar-app-name" id="sidebarNome">PC ANA CASALE</div>
           <div class="sidebar-role" id="sidebarDescrizione">Protezione Civile ANA</div>
@@ -797,8 +797,12 @@ div:hover > .vista-edit-btn { display:flex; }
             <label class="perm-check"><input type="checkbox" id="permVolontari" checked> Volontari</label>
             <label class="perm-check"><input type="checkbox" id="permInterventi" checked> Interventi</label>
             <label class="perm-check"><input type="checkbox" id="permMezzi" checked> Mezzi</label>
+            <label class="perm-check"><input type="checkbox" id="permDocumenti"> Documenti</label>
+            <label class="perm-check"><input type="checkbox" id="permDb"> DB Avanzato</label>
+            <label class="perm-check"><input type="checkbox" id="permStatistiche"> Statistiche</label>
             <label class="perm-check"><input type="checkbox" id="permRichieste"> Richieste</label>
-</div>
+            <label class="perm-check"><input type="checkbox" id="permImpostazioni"> Impostazioni</label>
+          </div>
           <button class="btn-primary" onclick="salvaUtente()">salva utente</button>
           </div>
       </div>
@@ -927,6 +931,6 @@ div:hover > .vista-edit-btn { display:flex; }
     </div>
   </div>
 
-<script src="area-riservata.js?v=65"></script>
+<script src="area-riservata.js?v=66"></script>
 </body>
 </html>

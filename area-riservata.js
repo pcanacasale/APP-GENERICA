@@ -126,75 +126,96 @@ function avviaSplashSafe() {
 document.addEventListener('DOMContentLoaded', avviaSplashSafe);
 
 // ============================================================
-// APP CONFIG — modifica qui per personalizzare l'applicazione
-// In futuro questi valori saranno caricati da Supabase (config_app)
-// e sovrascrivibili dal pannello Impostazioni.
+// DEFAULT CONFIG — valori di fallback quando il database
+// non è ancora configurato. Non modificare questo file.
+// Modifica config.js per la connessione Supabase.
+// Tutto il resto si configura dall'app (Impostazioni).
 // ============================================================
-const APP_CONFIG = {
 
-  // ── Connessione Supabase ──────────────────────────────────
-  supabase: {
-    url: 'https://pggtmyarpuztfewqgwyc.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBnZ3RteWFycHV6dGZld3Fnd3ljIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNDk4MjksImV4cCI6MjA4ODYyNTgyOX0.NqhNcmN-tqv5XWyeokSkjvOM6PxnmlDtZNcADeHRp9c',
-  },
+// Merge: config.js fornisce supabase.url e supabase.key,
+// qui completiamo con i default per tutto il resto.
+(function() {
+  if (typeof APP_CONFIG === 'undefined') {
+    console.error('config.js non caricato! Crea config.js con url e key Supabase.');
+    window.APP_CONFIG = { supabase: { url: '', key: '' } };
+  }
+  var D = {
+    unita: {
+      nomeBreve:      'La Mia Unità',
+      nomeLungo:      'La Mia Unità di Protezione Civile',
+      nomeSezione:    '',
+      sottotitolo:    '',
+      nomeSigla:      'LA MIA UNITÀ',
+      descrizione:    'Protezione Civile',
+      tipoVolontario: 'Volontario',
+      logoPath:       'images/logo.png',
+    },
+    colori: {
+      primario:      '#1a7a4a',
+      primarioLight: '#25a863',
+      primarioDark:  '#30d158',
+    },
+    attestati: {
+      ruoloFirmatario: 'Il Presidente',
+    },
+    volontari: {
+      squadre:  [],
+      tipi:     ['VOLONTARIO'],
+      mansioni: [],
+    },
+    interventi: {
+      tipiAttivita: [
+        'EMERGENZA', 'ESERCITAZIONE', 'CORSI', 'PREVENZIONE INFORTUNI',
+        'RAPPRESENTANZA', 'ASSEMBLEE E RIUNIONI', 'CONTROLLO TERRITORIO',
+        'SEGRETERIA', 'MAGAZZINO'
+      ],
+    },
+    mezzi: {
+      stati: ['OPERATIVO', 'IN MANUTENZIONE', 'FERMO'],
+    },
+  };
+  // Merge profondo: i valori di config.js hanno priorità
+  Object.keys(D).forEach(function(k) {
+    if (!APP_CONFIG[k]) APP_CONFIG[k] = D[k];
+    else APP_CONFIG[k] = Object.assign({}, D[k], APP_CONFIG[k]);
+  });
+})();
 
-  // ── Identità dell'unità ───────────────────────────────────
-  unita: {
-    nomeBreve:      'PC ANA Casale',          // usato in topbar, splash, titolo pagina
-    nomeLungo:      'PC ANA Casale Monferrato', // usato nel login e intestazioni PDF
-    nomeSezione:    'Sezione di Casale Monferrato', // riga 2 intestazione PDF attestati
-    sottotitolo:    "Medaglia d'Oro al M.C. della Città di Casale Monferrato", // riga 3 PDF
-    nomeSigla:      'PC ANA CASALE',          // sidebar header maiuscolo
-    descrizione:    'Protezione Civile ANA',  // sotto-label sidebar e splash
-    tipoVolontario: 'PC ANA',                 // etichetta tipo volontario interno
-    logoPath:       'images/logo-ana.gif',    // percorso logo (relativo al file HTML)
-  },
-
-  // ── Colori tema ───────────────────────────────────────────
-  // Cambiano il colore primario dell'app (verde ANA di default)
-  // Nota: i CSS custom properties vengono aggiornati a runtime
-  colori: {
-    primario:      '#1a7a4a',   // --green in light mode
-    primarioLight: '#25a863',   // --green-light
-    primarioDark:  '#30d158',   // --green in dark mode
-  },
-
-  // ── Attestati PDF ─────────────────────────────────────────
-  attestati: {
-    ruoloFirmatario: 'Il Presidente',
-    // I loghi e la firma sono base64 e rimangono nelle funzioni _getLogoSez/_getLogoVol/_getFirma
-    // Nel Passo B verranno caricati da Supabase Storage
-  },
-
-  // ── Volontari: liste valori ───────────────────────────────
-  volontari: {
-    squadre:   ['ALFA', 'CASALE', 'COLLINA', 'SEZIONE', 'TORINO'],
-    tipi:      ['VOLONTARIO', 'CAPO SQUADRA', 'PRESIDENTE'],
-    mansioni:  ['GENERICO', 'LOGISTICA', 'MAGAZZINIERE'],
-  },
-
-  // ── Interventi: tipi attività ─────────────────────────────
-  interventi: {
-    tipiAttivita: [
-      'EMERGENZA', 'ESERCITAZIONE', 'CORSI', 'PREVENZIONE INFORTUNI',
-      'RAPPRESENTANZA', 'ASSEMBLEE E RIUNIONI', 'CONTROLLO TERRITORIO',
-      'SEGRETERIA', 'MAGAZZINO'
-    ],
-  },
-
-  // ── Mezzi: stati ─────────────────────────────────────────
-  mezzi: {
-    stati: ['OPERATIVO', 'IN MANUTENZIONE', 'FERMO'],
-  },
-
-};
-// ── Scorciatoie (usate nel codice come prima) ─────────────
+// ── Scorciatoie ───────────────────────────────────────────
 const SUPA_URL = APP_CONFIG.supabase.url;
 const SUPA_KEY = APP_CONFIG.supabase.key;
-
-let currentUser = null;
 const H  = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY };
 const HJ = { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json' };
+
+// ── Carica config_app dal database e aggiorna APP_CONFIG ──
+async function caricaConfigApp() {
+  if (!SUPA_URL || SUPA_URL.includes('INSERISCI')) return; // non configurato
+  try {
+    var res  = await fetch(SUPA_URL + '/rest/v1/config_app?select=chiave,valore,tipo', { headers: H });
+    var rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) return;
+    rows.forEach(function(r) {
+      var val = r.tipo === 'json' ? JSON.parse(r.valore || '[]')
+              : r.tipo === 'bool' ? r.valore === 'true'
+              : r.valore;
+      // chiave nel formato "sezione.campo" → APP_CONFIG.sezione.campo
+      var parts = r.chiave.split('.');
+      if (parts.length === 2) {
+        if (!APP_CONFIG[parts[0]]) APP_CONFIG[parts[0]] = {};
+        APP_CONFIG[parts[0]][parts[1]] = val;
+      }
+    });
+    // Aggiorna scorciatoie (non cambiano ma per sicurezza)
+    // Riapplica al DOM
+    applicaConfig();
+  } catch(e) {
+    console.warn('config_app non disponibile, uso default:', e.message);
+  }
+}
+
+
+
+let currentUser = null;
 
 // PWA
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -226,6 +247,7 @@ async function doLogin() {
       sessionStorage.setItem('ar_user', u);
       sessionStorage.setItem('ar_pass', p);
       await logAttivita('ha effettuato il login');
+      await caricaConfigApp();
       avviaDashboard();
     } else {
       err.textContent = 'Credenziali non corrette.'; err.style.display = 'block';
